@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#07080B">
+<title>Av1ate Admin</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@300;400;500&display=swap">
+<style>
+  :root{
+    color-scheme:dark;
+    --ink:#07080B; --panel:#101219; --panel2:#161923; --line:rgba(255,255,255,.12);
+    --text:#F4F2EC; --muted:rgba(255,255,255,.58);
+    --gold:#C9A24A; --gold-hi:#F0DCA4; --gold-soft:rgba(201,162,74,.14);
+    --green:#7FCB9B; --red:#F0A65C; --blue:#9DB8E8;
+    --f-display:"Poppins","Helvetica Neue",Arial,sans-serif;
+    --f-body:"DM Sans","Helvetica Neue",Arial,sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  html,body{margin:0;background:var(--ink);color:var(--text);font-family:var(--f-body);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;}
+  [hidden]{display:none!important;}
+  button{font:inherit;color:inherit;}
+  a{color:var(--gold-hi);}
+  .wrap{max-width:46rem;margin:0 auto;padding:max(1rem,env(safe-area-inset-top)) 1rem calc(5rem + env(safe-area-inset-bottom));}
+  .eyebrow{font-family:var(--f-display);font-size:.62rem;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);}
+  h1{font-family:var(--f-display);font-weight:300;font-size:1.5rem;margin:.2rem 0 1rem;letter-spacing:-.01em;}
+
+  /* login */
+  .login{max-width:22rem;margin:12vh auto 0;}
+  .lbl{display:block;font-family:var(--f-display);font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin:.8rem 0 .3rem;}
+  .inp{width:100%;padding:.7rem .8rem;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);font:inherit;}
+  .inp:focus{outline:none;border-color:var(--gold);background:var(--gold-soft);}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;padding:.6rem 1rem;border-radius:999px;border:1px solid rgba(201,162,74,.6);background:var(--gold-soft);color:#F3E9D2;cursor:pointer;font-size:.86rem;min-height:2.5rem;}
+  .btn:hover{background:rgba(201,162,74,.26);}
+  .btn:disabled{opacity:.5;cursor:wait;}
+  .btn.solid{background:var(--gold);color:var(--ink);font-weight:600;border-color:var(--gold);}
+  .btn.ghost{border-color:var(--line);background:transparent;color:var(--text);}
+  .btn.warn{border-color:rgba(240,166,92,.6);background:rgba(240,166,92,.08);color:#F7D2A6;}
+  .btn.sm{padding:.35rem .75rem;min-height:2.1rem;font-size:.8rem;}
+  .btn.block{width:100%;margin-top:1.2rem;}
+  .msg{margin:.8rem 0 0;font-size:.85rem;color:var(--red);min-height:1.2rem;}
+
+  /* top bar + tabs */
+  .top{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;}
+  .tabs{position:fixed;left:0;right:0;bottom:0;display:flex;background:rgba(7,8,11,.94);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:.4rem .6rem calc(.4rem + env(safe-area-inset-bottom));z-index:5;}
+  .tab{flex:1;border:0;background:transparent;padding:.55rem;border-radius:10px;font-family:var(--f-display);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);cursor:pointer;}
+  .tab[aria-selected="true"]{color:var(--ink);background:var(--gold);}
+  .toast{position:fixed;left:50%;bottom:5.2rem;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);padding:.6rem 1rem;border-radius:999px;font-size:.85rem;z-index:6;max-width:calc(100% - 2rem);text-align:center;}
+  .toast.bad{border-color:rgba(240,166,92,.7);color:#F7D2A6;}
+
+  /* filters */
+  .chips{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.2rem;margin-bottom:.7rem;scrollbar-width:none;}
+  .chip{flex:0 0 auto;border:1px solid var(--line);background:transparent;border-radius:999px;padding:.4rem .8rem;font-size:.8rem;color:var(--muted);cursor:pointer;}
+  .chip[aria-pressed="true"]{border-color:var(--gold);color:var(--text);background:var(--gold-soft);}
+  .chip b{font-weight:500;color:var(--gold-hi);margin-left:.25rem;}
+  .search{margin-bottom:.8rem;}
+
+  /* quote cards */
+  .list{display:grid;gap:.7rem;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:.9rem .95rem;}
+  .card-h{display:flex;justify-content:space-between;align-items:flex-start;gap:.6rem;}
+  .card-name{font-size:1.02rem;font-weight:500;margin:0;}
+  .card-sub{font-size:.78rem;color:var(--muted);margin:.1rem 0 0;}
+  .pill{flex:0 0 auto;font-family:var(--f-display);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;padding:.25rem .55rem;border-radius:999px;border:1px solid;}
+  .pill.new{color:var(--gold-hi);border-color:rgba(201,162,74,.6);}
+  .pill.confirmed{color:var(--green);border-color:rgba(127,203,155,.55);}
+  .pill.declined{color:var(--red);border-color:rgba(240,166,92,.5);}
+  .pill.done{color:var(--muted);border-color:var(--line);}
+  .when{display:inline-flex;align-items:center;gap:.4rem;margin:.65rem 0 .2rem;padding:.35rem .65rem;border-radius:8px;background:var(--gold-soft);color:#F3E9D2;font-size:.84rem;}
+  .when.none{background:rgba(255,255,255,.05);color:var(--muted);}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:.25rem .8rem;margin:.6rem 0 0;font-size:.85rem;}
+  .kv dt{color:var(--muted);font-size:.74rem;}
+  .kv dd{margin:0;overflow-wrap:anywhere;}
+  .note{margin:.6rem 0 0;padding:.5rem .65rem;border-left:2px solid var(--gold);background:rgba(255,255,255,.04);font-size:.84rem;white-space:pre-wrap;}
+  .acts{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.8rem;}
+  .empty{color:var(--muted);text-align:center;padding:2rem 1rem;border:1px dashed var(--line);border-radius:14px;}
+
+  /* admin calendar */
+  .cal{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:.8rem;}
+  .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;}
+  .cal-title{font-family:var(--f-display);font-size:.9rem;letter-spacing:.12em;text-transform:uppercase;}
+  .nav{width:2.4rem;height:2.4rem;border-radius:999px;border:1px solid rgba(201,162,74,.5);background:transparent;cursor:pointer;font-size:1.1rem;}
+  .dow,.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .dow span{text-align:center;font-size:.62rem;letter-spacing:.1em;color:var(--muted);padding:.2rem 0;}
+  .day{position:relative;height:3.1rem;border-radius:8px;border:1px solid transparent;background:rgba(255,255,255,.03);cursor:pointer;padding:.25rem .3rem;text-align:left;display:flex;flex-direction:column;justify-content:space-between;}
+  .day .n{font-size:.82rem;}
+  .day .s{font-size:.6rem;color:var(--muted);line-height:1;}
+  .day.blank{visibility:hidden;}
+  .day.past{opacity:.35;cursor:default;}
+  .day.open{border-color:rgba(201,162,74,.6);background:var(--gold-soft);}
+  .day.open .s{color:var(--gold-hi);}
+  .day.full{border-color:rgba(127,203,155,.6);background:rgba(127,203,155,.12);}
+  .day.full .s{color:var(--green);}
+  .day.today .n{text-decoration:underline;text-underline-offset:3px;}
+  .day.sel{outline:2px solid var(--gold-hi);outline-offset:1px;}
+  .legend{display:flex;flex-wrap:wrap;gap:.8rem;margin:.7rem 0 0;font-size:.74rem;color:var(--muted);}
+  .legend i{display:inline-block;width:.75rem;height:.75rem;border-radius:3px;margin-right:.3rem;vertical-align:-1px;border:1px solid;}
+  .quick{display:flex;flex-wrap:wrap;gap:.4rem;margin:.8rem 0 0;}
+  .panel{margin-top:.8rem;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:.9rem;}
+  .panel h3{margin:0 0 .6rem;font-family:var(--f-display);font-weight:400;font-size:1rem;}
+  .stepper{display:flex;align-items:center;gap:.6rem;margin:.4rem 0 .2rem;}
+  .stepper .val{min-width:2rem;text-align:center;font-size:1.1rem;}
+  .mini{margin-top:.7rem;display:grid;gap:.4rem;}
+  .mini div{font-size:.85rem;padding:.45rem .6rem;border-radius:8px;background:rgba(255,255,255,.04);}
+  .help{font-size:.8rem;color:var(--muted);margin:.4rem 0 0;}
+</style>
+</head>
+<body>
+
+<!-- ===== login ===== -->
+<section class="wrap" id="v-login" hidden>
+  <div class="login">
+    <p class="eyebrow">Av1ate Aircraft Detailers</p>
+    <h1>Admin login</h1>
+    <form id="login-form" autocomplete="on">
+      <label class="lbl" for="l-email">Email</label>
+      <input class="inp" id="l-email" type="email" autocomplete="username" required>
+      <label class="lbl" for="l-pass">Password</label>
+      <input class="inp" id="l-pass" type="password" autocomplete="current-password" required>
+      <button class="btn solid block" id="l-go" type="submit">Log in</button>
+    </form>
+    <p class="msg" id="l-msg" role="alert"></p>
+  </div>
+</section>
+
+<!-- ===== not set up ===== -->
+<section class="wrap" id="v-setup" hidden>
+  <div class="login">
+    <p class="eyebrow">Av1ate Admin</p>
+    <h1>Not connected yet</h1>
+    <p class="help">This page needs your Supabase project URL and publishable key filled in at the top of its code (SB_URL and SB_KEY).</p>
+  </div>
+</section>
+
+<!-- ===== app ===== -->
+<section class="wrap" id="v-app" hidden>
+  <div class="top">
+    <div><p class="eyebrow">Av1ate Admin</p><h1 id="app-title">Quotes</h1></div>
+    <div style="display:flex;gap:.4rem;margin-bottom:1rem">
+      <button class="btn ghost sm" id="refresh" type="button">Refresh</button>
+      <button class="btn ghost sm" id="logout" type="button">Log out</button>
+    </div>
+  </div>
+
+  <!-- quotes -->
+  <div id="p-quotes">
+    <div class="chips" id="chips" role="group" aria-label="Filter quotes"></div>
+    <input class="inp search" id="search" type="search" placeholder="Search name, tail, airport, email…" aria-label="Search quotes">
+    <div class="list" id="list"></div>
+  </div>
+
+  <!-- calendar -->
+  <div id="p-cal" hidden>
+    <div class="cal">
+      <div class="cal-head">
+        <button class="nav" id="c-prev" type="button" aria-label="Previous month">&lsaquo;</button>
+        <span class="cal-title" id="c-title"></span>
+        <button class="nav" id="c-next" type="button" aria-label="Next month">&rsaquo;</button>
+      </div>
+      <div class="dow" aria-hidden="true"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+      <div class="grid" id="c-grid"></div>
+      <div class="legend">
+        <span><i style="border-color:var(--line);background:rgba(255,255,255,.03)"></i>Closed</span>
+        <span><i style="border-color:rgba(201,162,74,.6);background:var(--gold-soft)"></i>Open (spots left)</span>
+        <span><i style="border-color:rgba(127,203,155,.6);background:rgba(127,203,155,.12)"></i>Fully booked</span>
+      </div>
+      <div class="quick">
+        <button class="btn sm" id="q-weekdays" type="button">Open Mon–Fri this month</button>
+        <button class="btn sm ghost" id="q-weekends" type="button">Open Sat–Sun this month</button>
+      </div>
+      <p class="help">Tap a date to open it, change how many jobs it can take, or close it.</p>
+    </div>
+    <div class="panel" id="c-panel" hidden></div>
+  </div>
+</section>
+
+<nav class="tabs" id="tabs" hidden>
+  <button class="tab" id="t-quotes" type="button" aria-selected="true">Quotes</button>
+  <button class="tab" id="t-cal" type="button" aria-selected="false">Calendar</button>
+</nav>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ======== fill these two in (both are safe to be public) ========
+  var SB_URL = "https://foljftdgygoocyjjejqr.supabase.co";
+  var SB_KEY = "sb_publishable_NWi492YjLpXFhS29KF5-nQ_EAn0Ucv5";
+  // ================================================================
+
+  var BASE = String(SB_URL).replace(/\/+$/, "");
+  var READY = /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(BASE) && /^sb_publishable_/.test(SB_KEY);
+  var STORE = "av1-admin-session";
+  var session = null;
+
+  var $ = function(id){ return document.getElementById(id); };
+  function el(tag, cls, text){ var e = document.createElement(tag); if(cls) e.className = cls; if(text != null) e.textContent = text; return e; }
+  function show(id){ ["v-login","v-setup","v-app"].forEach(function(v){ $(v).hidden = (v !== id); }); $("tabs").hidden = (id !== "v-app"); }
+
+  var toastT = 0;
+  function toast(t, bad){ var e = $("toast"); e.textContent = t; e.className = "toast" + (bad ? " bad" : ""); e.hidden = false; clearTimeout(toastT); toastT = setTimeout(function(){ e.hidden = true; }, 3200); }
+
+  var ERR = {
+    not_admin: "This login is not set as the admin yet. Run the admin step in Supabase.",
+    has_bookings: "This date has active bookings. Decline or finish them first.",
+    date_full: "That date is already full, so this quote can't go back on it.",
+    bad_slots: "Jobs per day must be between 0 and 20.",
+    not_found: "That quote no longer exists."
+  };
+  function nice(err){
+    var m = String(err && err.message || err || "");
+    for(var k in ERR){ if(m.indexOf(k) >= 0) return ERR[k]; }
+    if(/Failed to fetch|NetworkError|Load failed/i.test(m)) return "Can't reach the server. Check your connection.";
+    return m || "Something went wrong.";
+  }
+
+  // ---------- session ----------
+  function saveSession(s){ session = s; try{ if(s) localStorage.setItem(STORE, JSON.stringify(s)); else localStorage.removeItem(STORE); }catch(e){} }
+  function loadSession(){ try{ var t = localStorage.getItem(STORE); return t ? JSON.parse(t) : null; }catch(e){ return null; } }
+  function fromAuth(j){ return {access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || (Math.floor(Date.now()/1000) + (j.expires_in || 3600)), email: j.user && j.user.email}; }
+
+  function authCall(grant, body){
+    return fetch(BASE + "/auth/v1/token?grant_type=" + grant, {
+      method: "POST", headers: {"apikey": SB_KEY, "Content-Type": "application/json"}, body: JSON.stringify(body)
+    }).then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){
+      if(!r.ok || !j.access_token){ throw new Error(j.error_description || j.msg || j.message || ("Login failed (" + r.status + ")")); }
+      return fromAuth(j);
+    }); });
+  }
+  function refresh(){
+    if(!session || !session.refresh_token) return Promise.reject(new Error("no_session"));
+    return authCall("refresh_token", {refresh_token: session.refresh_token}).then(function(s){ saveSession(s); return s; });
+  }
+  function fresh(){
+    if(session && session.expires_at - 60 > Date.now()/1000) return Promise.resolve(session);
+    return refresh();
+  }
+
+  function rpc(fn, body, retried){
+    return fresh().then(function(s){
+      return fetch(BASE + "/rest/v1/rpc/" + fn, {
+        method: "POST",
+        headers: {"apikey": SB_KEY, "Authorization": "Bearer " + s.access_token, "Content-Type": "application/json", "Accept": "application/json"},
+        body: JSON.stringify(body || {})
+      });
+    }).then(function(r){
+      return r.text().then(function(t){
+        var j = null; try{ j = t ? JSON.parse(t) : null; }catch(e){}
+        if(r.status === 401 && !retried){ return refresh().then(function(){ return rpc(fn, body, true); }); }
+        if(!r.ok){ var e = new Error((j && (j.message || j.msg)) || ("HTTP " + r.status)); e.status = r.status; throw e; }
+        return j;
+      });
+    }).catch(function(e){
+      if(e && (e.message === "no_session" || /refresh token|invalid_grant|Invalid Refresh/i.test(e.message))){ saveSession(null); show("v-login"); }
+      throw e;
+    });
+  }
+
+  // ---------- dates ----------
+  var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  function pad(n){ return String(n).padStart(2, "0"); }
+  function ymd(y, m, d){ return y + "-" + pad(m + 1) + "-" + pad(d); }
+  function todayKey(){ var n = new Date(); return ymd(n.getFullYear(), n.getMonth(), n.getDate()); }
+  function prettyDay(s, long){
+    if(!s) return "";
+    var p = s.split("-"); var dt = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]));
+    return dt.toLocaleDateString("en-US", long ? {weekday:"long", month:"long", day:"numeric", year:"numeric", timeZone:"UTC"} : {weekday:"short", month:"short", day:"numeric", timeZone:"UTC"});
+  }
+  function prettyStamp(ts){ try{ return new Date(ts).toLocaleString("en-US", {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"}); }catch(e){ return ts; } }
+
+  // ---------- quotes ----------
+  var quotes = [], filter = "new", q = "";
+  var FILTERS = [["new","New"],["confirmed","Confirmed"],["upcoming","Upcoming"],["declined","Declined"],["done","Done"],["all","All"]];
+
+  function matches(x){
+    if(filter === "upcoming"){ if(!(x.requested_day && x.requested_day >= todayKey() && (x.status === "new" || x.status === "confirmed"))) return false; }
+    else if(filter !== "all" && x.status !== filter) return false;
+    if(!q) return true;
+    var hay = [x.name, x.email, x.phone, x.tail, x.brand, x.model, x.airport, x.message, (x.services||[]).join(" ")].join(" ").toLowerCase();
+    return hay.indexOf(q) >= 0;
+  }
+
+  function drawChips(){
+    var box = $("chips"); box.innerHTML = "";
+    FILTERS.forEach(function(f){
+      var n = f[0] === "all" ? quotes.length : quotes.filter(function(x){ var keep = filter; filter = f[0]; var r = matches(x); filter = keep; return r; }).length;
+      var b = el("button", "chip", f[1]); b.type = "button"; b.setAttribute("aria-pressed", filter === f[0] ? "true" : "false");
+      if(n) b.appendChild(el("b", null, String(n)));
+      b.addEventListener("click", function(){ filter = f[0]; drawChips(); drawList(); });
+      box.appendChild(b);
+    });
+  }
+
+  function mailtoFor(x, kind){
+    var first = String(x.name || "").split(/\s+/)[0] || "there";
+    var ac = [x.brand, x.model].filter(Boolean).join(" ") || "your aircraft";
+    var subj, body;
+    if(kind === "confirm" && x.requested_day){
+      subj = "Your Av1ate detail is confirmed - " + prettyDay(x.requested_day, true);
+      body = "Hi " + first + ",\n\nThanks for choosing Av1ate. Your detail for " + ac + (x.tail ? " (" + x.tail + ")" : "") + " is confirmed for " + prettyDay(x.requested_day, true) + (x.airport ? " at " + x.airport : "") + ".\n\n";
+    } else {
+      subj = "Your Av1ate quote" + (x.tail ? " - " + x.tail : "");
+      body = "Hi " + first + ",\n\nThanks for your request for " + ac + (x.tail ? " (" + x.tail + ")" : "") + ".\n\n";
+    }
+    return "mailto:" + encodeURIComponent(x.email) + "?subject=" + encodeURIComponent(subj) + "&body=" + encodeURIComponent(body);
+  }
+
+  function act(label, cls, fn){ var b = el("button", "btn sm " + (cls || ""), label); b.type = "button"; b.addEventListener("click", function(){ b.disabled = true; Promise.resolve(fn()).finally(function(){ b.disabled = false; }); }); return b; }
+
+  function setStatus(x, st, okMsg){
+    return rpc("admin_set_status", {p_id: x.id, p_status: st}).then(function(){ x.status = st; toast(okMsg); drawChips(); drawList(); calDirty = true; })
+      .catch(function(e){ toast(nice(e), true); });
+  }
+
+  function card(x){
+    var c = el("article", "card");
+    var h = el("div", "card-h"), left = el("div");
+    left.appendChild(el("p", "card-name", x.name));
+    left.appendChild(el("p", "card-sub", "Received " + prettyStamp(x.created_at)));
+    h.appendChild(left); h.appendChild(el("span", "pill " + x.status, x.status));
+    c.appendChild(h);
+
+    c.appendChild(el("div", "when" + (x.requested_day ? "" : " none"), x.requested_day ? "📅 " + prettyDay(x.requested_day, true) : "No date picked"));
+
+    var kv = el("dl", "kv");
+    function row(k, v, href){ if(!v) return; kv.appendChild(el("dt", null, k)); var dd = el("dd"); if(href){ var a = el("a", null, v); a.href = href; dd.appendChild(a); } else dd.textContent = v; kv.appendChild(dd); }
+    row("Aircraft", [x.brand, x.model].filter(Boolean).join(" "));
+    row("Tail", x.tail);
+    row("Airport", x.airport);
+    row("Services", (x.services || []).join(", "));
+    row("Phone", x.phone, x.phone ? "tel:" + String(x.phone).replace(/[^\d+]/g, "") : null);
+    row("Email", x.email, "mailto:" + x.email);
+    row("Notes", x.message);
+    c.appendChild(kv);
+    if(x.admin_note) c.appendChild(el("p", "note", x.admin_note));
+
+    var a = el("div", "acts");
+    if(x.status === "new"){
+      a.appendChild(act("Confirm", "solid", function(){ return setStatus(x, "confirmed", "Confirmed. Tap Email to let them know."); }));
+      a.appendChild(act("Decline", "warn", function(){ return setStatus(x, "declined", "Declined. The date is free again."); }));
+    }
+    if(x.status === "confirmed"){
+      a.appendChild(act("Mark done", "solid", function(){ return setStatus(x, "done", "Marked done."); }));
+      a.appendChild(act("Cancel booking", "warn", function(){ if(!confirm("Cancel this booking and free the date?")) return; return setStatus(x, "declined", "Cancelled. The date is free again."); }));
+    }
+    if(x.status === "declined" || x.status === "done"){
+      a.appendChild(act("Reopen", "ghost", function(){ return setStatus(x, "new", "Moved back to New."); }));
+    }
+    var mail = el("a", "btn sm ghost", "Email"); mail.href = mailtoFor(x, x.status === "confirmed" ? "confirm" : "quote"); a.appendChild(mail);
+    if(x.phone){ var call = el("a", "btn sm ghost", "Call"); call.href = "tel:" + String(x.phone).replace(/[^\d+]/g, ""); a.appendChild(call); }
+    a.appendChild(act("Note", "ghost", function(){
+      var t = prompt("Private note (only you see this):", x.admin_note || ""); if(t === null) return;
+      return rpc("admin_set_status", {p_id: x.id, p_status: x.status, p_note: t}).then(function(){ x.admin_note = t; drawList(); toast("Note saved."); }).catch(function(e){ toast(nice(e), true); });
+    }));
+    a.appendChild(act("Delete", "ghost", function(){
+      if(!confirm("Delete this quote for good? This can't be undone.")) return;
+      return rpc("admin_delete_quote", {p_id: x.id}).then(function(){ quotes = quotes.filter(function(y){ return y.id !== x.id; }); drawChips(); drawList(); calDirty = true; toast("Deleted."); }).catch(function(e){ toast(nice(e), true); });
+    }));
+    c.appendChild(a);
+    return c;
+  }
+
+  function drawList(){
+    var list = $("list"); list.innerHTML = "";
+    var rows = quotes.filter(matches);
+    if(filter === "upcoming") rows.sort(function(a, b){ return a.requested_day < b.requested_day ? -1 : 1; });
+    if(!rows.length){ list.appendChild(el("div", "empty", quotes.length ? "Nothing here." : "No quotes yet. New requests from the website will show up here.")); return; }
+    rows.forEach(function(x){ list.appendChild(card(x)); });
+  }
+
+  function loadQuotes(){
+    return rpc("admin_list_quotes").then(function(rows){ quotes = rows || []; drawChips(); drawList(); })
+      .catch(function(e){ toast(nice(e), true); });
+  }
+
+  // ---------- calendar ----------
+  var view = null, days = {}, selDay = null, calDirty = true;
+
+  function monthRange(){ var y = view[0], m = view[1]; return [ymd(y, m, 1), ymd(y, m, new Date(Date.UTC(y, m + 1, 0)).getUTCDate())]; }
+  function loadDays(){
+    var r = monthRange();
+    return rpc("admin_list_days", {p_from: r[0], p_to: r[1]}).then(function(rows){
+      days = {}; (rows || []).forEach(function(d){ days[d.day] = d; }); calDirty = false; drawCal();
+    }).catch(function(e){ toast(nice(e), true); });
+  }
+
+  function drawCal(){
+    var y = view[0], m = view[1], grid = $("c-grid"), tk = todayKey();
+    $("c-title").textContent = MONTHS[m] + " " + y;
+    grid.innerHTML = "";
+    var start = new Date(Date.UTC(y, m, 1)).getUTCDay(), n = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+    for(var i = 0; i < start; i++) grid.appendChild(el("span", "day blank"));
+    for(var d = 1; d <= n; d++){
+      var key = ymd(y, m, d), info = days[key], b = el("button", "day"); b.type = "button";
+      b.appendChild(el("span", "n", String(d)));
+      var label = prettyDay(key, true);
+      if(info && info.slots > 0){
+        var left = info.slots - info.held;
+        b.className += left > 0 ? " open" : " full";
+        b.appendChild(el("span", "s", left > 0 ? (info.held ? info.held + "/" + info.slots + " booked" : "open") : "full"));
+        label += left > 0 ? ", open, " + info.held + " of " + info.slots + " booked" : ", fully booked";
+      } else if(info && info.held){
+        b.className += " full"; b.appendChild(el("span", "s", info.held + " booked")); label += ", closed with bookings";
+      } else { label += ", closed"; }
+      if(key < tk) b.className += " past";
+      if(key === tk) b.className += " today";
+      if(key === selDay) b.className += " sel";
+      b.setAttribute("aria-label", label);
+      b.dataset.day = key;
+      grid.appendChild(b);
+    }
+    drawPanel();
+  }
+
+  function drawPanel(){
+    var p = $("c-panel");
+    if(!selDay){ p.hidden = true; return; }
+    p.hidden = false; p.innerHTML = "";
+    var info = days[selDay] || {slots: 0, held: 0};
+    p.appendChild(el("h3", null, prettyDay(selDay, true)));
+    if(info.slots > 0){
+      p.appendChild(el("p", "help", "Jobs this day can take:"));
+      var st = el("div", "stepper");
+      st.appendChild(act("−", "ghost", function(){ return setDay(selDay, Math.max(info.held, info.slots - 1) || 0, info.slots - 1 < 1); }));
+      st.appendChild(el("span", "val", String(info.slots)));
+      st.appendChild(act("+", "ghost", function(){ return setDay(selDay, Math.min(20, info.slots + 1)); }));
+      p.appendChild(st);
+      p.appendChild(el("p", "help", info.held + " booked, " + Math.max(0, info.slots - info.held) + " open."));
+      var row = el("div", "acts");
+      row.appendChild(act("Close this date", "warn", function(){ return setDay(selDay, 0); }));
+      p.appendChild(row);
+    } else {
+      p.appendChild(el("p", "help", info.held ? "Closed, but it still has bookings." : "This date is closed. Customers can't pick it."));
+      var row2 = el("div", "acts");
+      row2.appendChild(act("Open this date", "solid", function(){ return setDay(selDay, Math.max(1, info.held)); }));
+      p.appendChild(row2);
+    }
+    var booked = quotes.filter(function(x){ return x.requested_day === selDay && (x.status === "new" || x.status === "confirmed"); });
+    if(booked.length){
+      var mini = el("div", "mini");
+      booked.forEach(function(x){ mini.appendChild(el("div", null, x.name + " · " + ([x.brand, x.model].filter(Boolean).join(" ") || "aircraft") + (x.tail ? " · " + x.tail : "") + " · " + x.status)); });
+      p.appendChild(mini);
+    }
+  }
+
+  function setDay(day, slots, closing){
+    if(closing) slots = 0;
+    return rpc("admin_set_day", {p_day: day, p_slots: slots}).then(function(){
+      toast(slots === 0 ? "Date closed." : "Saved: " + slots + " job" + (slots === 1 ? "" : "s") + " that day.");
+      return loadDays();
+    }).catch(function(e){ toast(nice(e), true); });
+  }
+
+  function openRange(dows){
+    var r = monthRange(), tk = todayKey(), from = r[0] < tk ? tk : r[0];
+    if(from > r[1]){ toast("This month is over. Go to next month first.", true); return Promise.resolve(); }
+    return rpc("admin_open_range", {p_from: from, p_to: r[1], p_weekdays: dows, p_slots: 1}).then(function(n){
+      toast(n ? "Opened " + n + " date" + (n === 1 ? "" : "s") + "." : "Those dates were already open.");
+      return loadDays();
+    }).catch(function(e){ toast(nice(e), true); });
+  }
+
+  // ---------- tabs ----------
+  function tab(name){
+    var isQ = name === "quotes";
+    $("p-quotes").hidden = !isQ; $("p-cal").hidden = isQ;
+    $("t-quotes").setAttribute("aria-selected", isQ ? "true" : "false");
+    $("t-cal").setAttribute("aria-selected", isQ ? "false" : "true");
+    $("app-title").textContent = isQ ? "Quotes" : "Calendar";
+    if(!isQ && calDirty) loadDays();
+  }
+
+  // ---------- wiring ----------
+  function startApp(){
+    show("v-app");
+    var n = new Date(); view = [n.getFullYear(), n.getMonth()];
+    loadQuotes().then(function(){ if(!$("p-cal").hidden) loadDays(); });
+  }
+
+  $("login-form").addEventListener("submit", function(e){
+    e.preventDefault();
+    var go = $("l-go"); go.disabled = true; $("l-msg").textContent = "";
+    authCall("password", {email: $("l-email").value.trim(), password: $("l-pass").value})
+      .then(function(s){ saveSession(s); $("l-pass").value = ""; startApp(); })
+      .catch(function(err){ $("l-msg").textContent = /Invalid login/i.test(err.message) ? "Wrong email or password." : nice(err); })
+      .finally(function(){ go.disabled = false; });
+  });
+  $("logout").addEventListener("click", function(){
+    var s = session; saveSession(null); quotes = [];
+    if(s) fetch(BASE + "/auth/v1/logout", {method: "POST", headers: {"apikey": SB_KEY, "Authorization": "Bearer " + s.access_token}}).catch(function(){});
+    show("v-login");
+  });
+  $("refresh").addEventListener("click", function(){ calDirty = true; loadQuotes().then(function(){ if(!$("p-cal").hidden) loadDays(); }); });
+  $("search").addEventListener("input", function(){ q = this.value.trim().toLowerCase(); drawList(); });
+  $("t-quotes").addEventListener("click", function(){ tab("quotes"); });
+  $("t-cal").addEventListener("click", function(){ tab("cal"); });
+  $("c-prev").addEventListener("click", function(){ var v = view[0] * 12 + view[1] - 1; view = [Math.floor(v / 12), v % 12]; selDay = null; loadDays(); });
+  $("c-next").addEventListener("click", function(){ var v = view[0] * 12 + view[1] + 1; view = [Math.floor(v / 12), v % 12]; selDay = null; loadDays(); });
+  $("c-grid").addEventListener("click", function(e){
+    var b = e.target.closest && e.target.closest("button.day"); if(!b || b.classList.contains("past")) return;
+    selDay = (selDay === b.dataset.day) ? null : b.dataset.day; drawCal();
+  });
+  $("q-weekdays").addEventListener("click", function(){ openRange([1,2,3,4,5]); });
+  $("q-weekends").addEventListener("click", function(){ openRange([0,6]); });
+
+  if(!READY){ show("v-setup"); return; }
+  session = loadSession();
+  if(session){ startApp(); } else { show("v-login"); }
+})();
+</script>
+</body>
+</html>
