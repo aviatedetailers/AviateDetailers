@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /admin
+Disallow: /crew
+Disallow: /report
+Sitemap: https://www.aviatedetailers.com/sitemap.xml
