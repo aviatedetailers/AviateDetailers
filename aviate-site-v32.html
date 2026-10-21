@@ -333,6 +333,11 @@
 .deal-chk input{appearance:auto;-webkit-appearance:auto;width:1.15rem;height:1.15rem;min-width:1.15rem;margin:.1rem 0 0;padding:0;accent-color:#C9A24A;opacity:1;}
 .deal-in{width:100%;margin-top:.45rem;padding:.55rem .7rem;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;font:inherit;font-size:.9rem;}
 .deal-in:focus{outline:none;border-color:#C9A24A;}
+.code-row{display:flex;gap:.5rem;align-items:center;}
+.code-row .deal-in{margin-top:0;text-transform:uppercase;}
+.code-go{flex:0 0 auto;padding:.55rem .95rem;border-radius:10px;border:1px solid #C9A24A;background:transparent;color:#E2C892;font:inherit;font-size:.85rem;cursor:pointer;}
+.code-msg{display:block;min-height:1em;margin-top:.35rem;font-size:.76rem;line-height:1.35;color:#9FE0B4;}
+.code-msg.bad{color:#F7B7A0;}
 .st-row.disc span:last-child{color:#9FE0B4;}
 .st-row.disc span:first-child{color:#BFE8CC;}
 .promo-bar{position:fixed;left:0;right:0;z-index:44;top:calc(3.6rem + env(safe-area-inset-top,0px));display:flex;justify-content:center;align-items:center;gap:.7rem;flex-wrap:wrap;
@@ -794,6 +799,7 @@ body.quote-open .promo-bar,body.past-start .promo-bar{display:none !important;}
       <div class="field full"><label for="q-field">Home airport</label><input id="q-field" name="airport" placeholder="KBLM &middot; Monmouth County"></div>
       <fieldset class="field full cal" id="q-cal" hidden><legend>Preferred date &amp; time <em>(open dates in gold)</em></legend><div class="cal-box"><div class="cal-head"><button type="button" class="cal-nav" id="cal-prev" aria-label="Previous month">&lsaquo;</button><span class="cal-title" id="cal-title" aria-live="polite"></span><button type="button" class="cal-nav" id="cal-next" aria-label="Next month">&rsaquo;</button></div><div class="cal-dow" aria-hidden="true"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div><div class="cal-grid" id="cal-grid"></div><div class="cal-times" id="cal-times" hidden><p class="cal-times-h" id="cal-times-h">Start time</p><div class="cal-tgrid" id="cal-tgrid"></div></div><p class="cal-note">Start times from 11 PM to 4 AM have a <span class="ah-amt">$250</span> after-hours fee.</p><div class="cal-foot"><span id="cal-pick">No date picked. We will suggest one.</span><button type="button" class="cal-clear" id="cal-clear" hidden>Clear</button></div></div></fieldset>
       <fieldset class="field full svcs"><legend>Services &amp; prices</legend><div id="svc-ui"></div></fieldset>
+      <div class="full deal-box" id="dl-code"><label for="q-code" class="deal-lab">Have a promo code?</label><div class="code-row"><input id="q-code" class="deal-in" placeholder="Enter code" autocapitalize="characters" autocomplete="off" maxlength="30"><button type="button" class="code-go" id="q-code-go">Apply</button></div><small class="code-msg" id="q-code-msg" aria-live="polite"></small></div>
       <div class="full deal-box" id="dl-ref" hidden><label for="q-ref" class="deal-lab" id="dl-ref-lab"></label><input id="q-ref" class="deal-in" autocomplete="off" maxlength="80" placeholder="Their name"></div>
       <div class="full deal-box" id="dl-nb" hidden><label class="deal-chk" for="q-nb"><input type="checkbox" id="q-nb"><span id="dl-nb-lab"></span></label><input id="q-nbn" class="deal-in" autocomplete="off" maxlength="80" placeholder="Their name or tail number" hidden></div>
       <div class="full rc"><label class="rc-yes" for="q-rec"><input type="checkbox" id="q-rec"><span><b>Interested in a recurring plan?</b> Save with regular visits — we'll reach out with plan pricing.</span></label><div class="rc-f" id="q-rec-f" hidden><p>How often?</p><div class="rc-os"><label class="rc-o"><input type="radio" name="recurring" value="biweekly"><span>Biweekly (every 2 weeks)</span></label><label class="rc-o"><input type="radio" name="recurring" value="monthly" checked><span>Monthly</span></label><label class="rc-o"><input type="radio" name="recurring" value="every_2_months"><span>Every 2 months</span></label><label class="rc-o"><input type="radio" name="recurring" value="not_sure"><span>Not sure yet</span></label></div></div></div>
@@ -5288,7 +5294,7 @@ body.quote-open .promo-bar,body.past-start .promo-bar{display:none !important;}
       return "";
     }
 
-    var st = {brand: "", model: "", custom: false, cls: "", picked: "", pkg: "", open: "", quick: {}, upg: {}, ah: false, ref: "", nb: false};
+    var st = {brand: "", model: "", custom: false, cls: "", picked: "", pkg: "", open: "", quick: {}, upg: {}, ah: false, ref: "", nb: false, code: null};
     var DEALS = {referral: null, neighbor: null, promos: []};
     function dealAmt(d, base){ var a = Number(d.amount) || 0; return d.kind === "%" ? Math.round(base * a) / 100 : a; }
     function dealTxt(d){ var a = Number(d.amount) || 0; return d.kind === "%" ? a + "%" : "$" + a.toLocaleString("en-US"); }
@@ -5324,8 +5330,25 @@ body.quote-open .promo-bar,body.past-start .promo-bar{display:none !important;}
       var svcSum = total;
       if(!st.pkg && services.length){ rows.push(["Call-out fee (quick services only)", money(CALLOUT)]); total += CALLOUT; }
       if(st.ah && services.length){ rows.push(["After-hours start (11 PM – 4 AM)", money(AFTER_HOURS)]); total += AFTER_HOURS; }
-      var discounts = [];
-      if(services.length){
+      var discounts = [], codeNote = "";
+      if(services.length && st.code){
+        // a promo code replaces the automatic promos and discounts
+        var cd = st.code, need = cd.needs || [], miss = need.filter(function(n){ return services.indexOf(n) < 0; });
+        var cname = cd.title || cd.code;
+        if(miss.length){ codeNote = "Code " + cd.code + " is for " + need.join(" + ") + ". Add " + miss.join(" + ") + " to use it."; }
+        else if(quote){ rows.push([cname, "Applied to your quote", "disc"]); discounts.push({name: cd.code + " · " + cname, amount: null}); codeNote = "✓ Code " + cd.code + " applied."; }
+        else {
+          var covered = need.reduce(function(a, n){ return a + (each[n] || 0); }, 0);
+          var cv = cd.kind === "price" ? covered - Number(cd.amount) : cd.kind === "%" ? Math.round((need.length ? covered : svcSum) * Number(cd.amount)) / 100 : Number(cd.amount);
+          cv = Math.min(cv, total);
+          if(cv > 0){
+            total = Math.round((total - cv) * 100) / 100;
+            rows.push([cname, "−" + money(cv), "disc"]);
+            discounts.push({name: cd.code + " · " + cname, amount: cv});
+          }
+          codeNote = "✓ Code " + cd.code + " applied.";
+        }
+      } else if(services.length){
         var base = svcSum;
         liveDeals(services).forEach(function(x){
           if(quote){ rows.push([x.name + (x.fixed ? " (" + dealTxt(x.d) + " off)" : ""), "Applied to your quote", "disc"]); discounts.push({name: x.name, amount: null}); return; }
@@ -5336,7 +5359,7 @@ body.quote-open .promo-bar,body.past-start .promo-bar{display:none !important;}
           discounts.push({name: x.name, amount: v});
         });
       }
-      return {rows: rows, total: total, from: from, quote: quote, cq: cq, services: services, discounts: discounts};
+      return {rows: rows, total: total, from: from, quote: quote, cq: cq, services: services, discounts: discounts, codeNote: codeNote};
     }
 
     function draw(){
@@ -5404,6 +5427,8 @@ body.quote-open .promo-bar,body.past-start .promo-bar{display:none !important;}
         if(!c.quote) t.appendChild(el("p", "svc-note", "We confirm the final price when we reply to your request."));
         box.appendChild(t);
       }
+      var cm = document.getElementById("q-code-msg");
+      if(cm && st.code){ cm.textContent = c.codeNote || ("✓ Code " + st.code.code + " applied."); cm.classList.toggle("bad", /^Code /.test(c.codeNote || "")); }
     }
     function checkRow(name, price, checked, locked, onChange, note){
       var lab = el("label", "svc qs" + (locked ? " locked" : ""));
@@ -5430,11 +5455,36 @@ body.quote-open .promo-bar,body.past-start .promo-bar{display:none !important;}
         st.cls = c;
         draw();
       },
+      setCode: function(cd){ st.code = cd || null; draw(); },
       setAfterHours: function(v){ v = !!v; if(v !== st.ah){ st.ah = v; draw(); } },
       get: function(){ var c = calc(); var p = P(); return {cls: p ? p.label : "", services: c.services, total: c.quote ? null : c.total, from: c.from, quote: c.quote, rows: c.rows, discounts: c.discounts || [], ref: DEALS.referral ? st.ref : "", nb: DEALS.neighbor && st.nb ? (st.nbName || "yes") : ""}; },
       _classOf: classOf
     };
     draw();
+    // promo codes: checked one at a time against the admin list (the list itself is never sent here)
+    (function(){
+      var cIn = document.getElementById("q-code"), cGo = document.getElementById("q-code-go"), cMsg = document.getElementById("q-code-msg");
+      if(!cIn || !cGo) return;
+      function msg(t, bad){ cMsg.textContent = t || ""; cMsg.classList.toggle("bad", !!bad); }
+      function apply(){
+        var code = cIn.value.trim().toUpperCase().replace(/[^A-Z0-9-]/g, "");
+        if(!code){ st.code = null; msg(""); draw(); return; }
+        cGo.disabled = true; msg("Checking…");
+        fetch("https://foljftdgygoocyjjejqr.supabase.co/rest/v1/rpc/deal_code_check", {method: "POST",
+          headers: {"apikey": "sb_publishable_NWi492YjLpXFhS29KF5-nQ_EAn0Ucv5", "Content-Type": "application/json"}, body: JSON.stringify({p_code: code})})
+          .then(function(r){ return r.ok ? r.json() : null; })
+          .then(function(d){
+            if(d && d.code){ st.code = d; msg("✓ Code " + d.code + " applied."); }
+            else { st.code = null; msg("That code isn't valid.", true); }
+            draw();
+          })
+          .catch(function(){ msg("Couldn't check the code. Try again.", true); })
+          .finally(function(){ cGo.disabled = false; });
+      }
+      cGo.addEventListener("click", apply);
+      cIn.addEventListener("keydown", function(e){ if(e.key === "Enter"){ e.preventDefault(); apply(); } });
+      cIn.addEventListener("input", function(){ if(!cIn.value.trim() && st.code){ st.code = null; msg(""); draw(); } });
+    })();
     // deals from the admin page: promo banner, referral box, hangar-neighbor box
     (function(){
       var refBox = document.getElementById("dl-ref"), refIn = document.getElementById("q-ref"),

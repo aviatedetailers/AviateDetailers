@@ -473,7 +473,10 @@
     future_day: "That date is in the future. Use this only for jobs already done.",
     bad_email: "That email doesn't look right. Check it or leave it empty.",
     bad_time: "Pick a start time, or leave it empty.",
-    time_taken: "That time overlaps another job or a busy time on your calendar."
+    time_taken: "That time overlaps another job or a busy time on your calendar.",
+    bad_code: "Codes need 3 to 30 letters or numbers (no spaces).",
+    code_needs: "A set-price code needs at least one service ticked.",
+    code_twice: "Two codes have the same name. Make each code different."
   };
   function nice(err){
     var m = String(err && err.message || err || "");
@@ -1409,7 +1412,7 @@
       rpc("admin_deals_get").then(function(r){ dealData = r || {referral: {}, neighbor: {}, promos: []}; if(curTab === "deals") drawDeals(); }).catch(function(e){ toast(nice(e), true); });
       return;
     }
-    var D = JSON.parse(JSON.stringify(dealData)); D.referral = D.referral || {}; D.neighbor = D.neighbor || {}; D.promos = D.promos || [];
+    var D = JSON.parse(JSON.stringify(dealData)); D.referral = D.referral || {}; D.neighbor = D.neighbor || {}; D.promos = D.promos || []; D.codes = D.codes || [];
     p.appendChild(el("p", "help", "Turn deals on or off, set the amount, and change the wording. When a deal is on, the website takes it off the customer's total automatically and shows it as its own line. Tap Save when you're done."));
     function amountRow(obj, onChange){
       var w = el("div", "dl-amt");
@@ -1482,10 +1485,57 @@
       c.appendChild(a);
       p.appendChild(c);
     });
+    // ---- promo codes (private: customers type them on the quote form) ----
+    var CODE_SVCS = ["Full detail", "Exterior wash", "Interior clean", "Wax", "Ceramic coat", "Belly degrease", "Window clean", "Cowling & leading edge de-bug"];
+    var ch2 = el("div", "dl-h"); ch2.style.marginTop = "1rem"; ch2.appendChild(el("p", "jsec", "Promo codes"));
+    var addC = el("button", "btn sm", "+ Add code"); addC.type = "button";
+    addC.addEventListener("click", function(){ dealData = D; D.codes.push({on: true, code: "", title: "", kind: "price", amount: 0, needs: [], ends: null}); drawDeals(); });
+    ch2.appendChild(addC); p.appendChild(ch2);
+    p.appendChild(el("p", "help", "Private codes you give to certain customers. They type the code on the quote form and the price changes right away. A code replaces the automatic promos."));
+    D.codes.forEach(function(o, i){
+      o.needs = o.needs || [];
+      var c = el("div", "dl-c" + (o.on ? " on" : ""));
+      var h = el("div", "dl-h"); h.appendChild(el("h3", null, o.code || "New code"));
+      var prev = el("p", "dl-prev");
+      function upd(){
+        var svc = o.needs.length ? o.needs.join(" + ") : "any booking";
+        var a = Number(o.amount) || 0;
+        prev.textContent = (o.kind === "price" ? svc + " for " + cash(a) : (o.kind === "%" ? a + "%" : cash(a)) + " off " + svc) + (o.ends ? " · ends " + prettyDay(String(o.ends).slice(0, 10)) : "");
+      }
+      h.appendChild(toggle(o, c, upd)); c.appendChild(h);
+      var ci = inp("text", o.code || "", "e.g. KURTZ100"); ci.maxLength = 30; ci.style.textTransform = "uppercase";
+      ci.addEventListener("input", function(){ o.code = ci.value.toUpperCase().replace(/[^A-Z0-9-]/g, ""); h.firstChild.textContent = o.code || "New code"; });
+      c.appendChild(fld("Code (what the customer types)", ci));
+      var ti = inp("text", o.title || "", "e.g. Kurtz plan: Full detail + Wax for $375"); ti.maxLength = 120;
+      ti.addEventListener("input", function(){ o.title = ti.value; });
+      c.appendChild(fld("Name on their price (optional)", ti));
+      var w = el("div", "dl-amt");
+      var am = inp("text", o.amount ? String(o.amount) : "", "0"); am.inputMode = "decimal";
+      am.addEventListener("input", function(){ o.amount = parseMoney(am.value) || 0; upd(); });
+      var kd = el("select", "inp"); [["price", "Set price"], ["$", "$ off"], ["%", "% off"]].forEach(function(k){ var op = el("option", null, k[1]); op.value = k[0]; kd.appendChild(op); });
+      kd.value = o.kind || "price"; kd.addEventListener("change", function(){ o.kind = kd.value; upd(); });
+      w.appendChild(fld("Amount", am)); w.appendChild(fld("Type", kd)); c.appendChild(w);
+      c.appendChild(el("p", "help", "Services (for Set price, the price covers exactly these)"));
+      var sw = el("div", "ce-svcs");
+      CODE_SVCS.forEach(function(n){ var l = el("label", "pj-s"); var cb = el("input"); cb.type = "checkbox"; cb.checked = o.needs.indexOf(n) >= 0;
+        cb.addEventListener("change", function(){ if(cb.checked){ if(o.needs.indexOf(n) < 0) o.needs.push(n); } else o.needs = o.needs.filter(function(x){ return x !== n; }); upd(); });
+        l.appendChild(cb); l.appendChild(el("span", null, n)); sw.appendChild(l); });
+      c.appendChild(sw);
+      var en = inp("date", o.ends ? String(o.ends).slice(0, 10) : ""); en.addEventListener("change", function(){ o.ends = en.value || null; upd(); });
+      c.appendChild(fld("Ends on (optional)", en));
+      c.appendChild(prev); upd();
+      var a = el("div", "acts");
+      a.appendChild(act("Remove code", "warn", function(){ if(!confirm("Remove this code?")) return; D.codes.splice(i, 1); dealData = D; drawDeals(); toast("Removed. Tap Save to update the website."); }));
+      c.appendChild(a);
+      p.appendChild(c);
+    });
+
     var sv = el("div", "pr-save");
     sv.appendChild(act("Save deals", "solid block", function(){
       var bad = D.promos.some(function(o){ return !String(o.title || "").trim(); });
       if(bad){ toast("Give every promo a name first.", true); return; }
+      if(D.codes.some(function(o){ return String(o.code || "").length < 3; })){ toast("Every code needs at least 3 letters or numbers.", true); return; }
+      if(D.codes.some(function(o){ return o.kind === "price" && !(o.needs || []).length; })){ toast("Tick the services each Set price code covers.", true); return; }
       return rpc("admin_deals_save", {p: D}).then(function(r){ dealData = r; toast("Saved. Your website is updated."); drawDeals(); }).catch(function(e){ toast(nice(e), true); });
     }));
     p.appendChild(sv);
