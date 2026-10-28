@@ -178,7 +178,7 @@
 
 <nav class="tabs" id="tabs" hidden>
   <button class="tab" id="t-jobs" type="button" aria-selected="true">My jobs</button>
-  <button class="tab" id="t-hours" type="button" aria-selected="false">Hours</button>
+  <button class="tab" id="t-hours" type="button" aria-selected="false">Pay</button>
   <button class="tab" id="t-leads" type="button" aria-selected="false" hidden>Leads</button>
   <button class="tab" id="t-me" type="button" aria-selected="false">Account</button>
 </nav>
@@ -605,7 +605,10 @@
     var p = $("p-hours"); p.innerHTML = "";
     var pay = el("div", "panel"); pay.appendChild(el("h3", null, "Unpaid"));
     pay.appendChild(el("p", "big", money(me.owed)));
-    pay.appendChild(el("p", "help", num(me.hours_unpaid) + " unpaid hours at " + money(me.hourly_rate) + "/hr · " + num(me.hours_total) + " hours all-time"));
+    var isPct = me.pay_type === "percent";
+    pay.appendChild(el("p", "help", isPct
+      ? "You earn " + num(me.pay_percent) + "% of each job you work. It's added here when the job is marked done."
+      : num(me.hours_unpaid) + " unpaid hours at " + money(me.hourly_rate) + "/hr · " + num(me.hours_total) + " hours all-time"));
     p.appendChild(pay);
 
     var f = el("div", "panel"); f.appendChild(el("h3", null, "Log hours"));
@@ -628,14 +631,14 @@
         .then(function(){ toast("Hours logged."); return loadAll(); })
         .catch(function(e){ toast(nice(e), true); }).finally(function(){ go.disabled = false; });
     });
-    p.appendChild(f);
+    if(!isPct) p.appendChild(f);
 
     p.appendChild(el("p", "sec", "History"));
-    if(!logs.length) p.appendChild(el("div", "empty", "No hours logged yet."));
+    if(!logs.length) p.appendChild(el("div", "empty", isPct ? "Nothing yet. Your pay shows up here after each job." : "No hours logged yet."));
     logs.forEach(function(l){
       var r = el("div", "log" + (l.paid ? " paid" : ""));
-      var t = el("div"); t.appendChild(el("strong", null, prettyDay(l.work_date) + " · " + num(l.hours) + " h · " + money(l.amount)));
-      t.appendChild(el("span", "log-s", [l.paid ? "Paid" : "Unpaid", l.added_by === "admin" ? "added by Av1ate" : null, l.note].filter(Boolean).join(" · ")));
+      var t = el("div"); t.appendChild(el("strong", null, prettyDay(l.work_date) + " · " + (l.kind === "percent" ? l.note : num(l.hours) + " h") + " · " + money(l.amount)));
+      t.appendChild(el("span", "log-s", [l.paid ? "Paid" : "Unpaid", l.added_by === "admin" ? "added by Aviate" : null, l.kind === "percent" ? l.job_label : l.note].filter(Boolean).join(" · ")));
       r.appendChild(t);
       if(l.added_by === "worker" && !l.paid){
         var x = el("button", "btn sm warn", "Remove"); x.type = "button";
@@ -651,7 +654,7 @@
   function drawMe(){
     var p = $("p-me"); p.innerHTML = "";
     var c = el("div", "panel"); c.appendChild(el("h3", null, me.name));
-    c.appendChild(el("p", "help", [me.role, money(me.hourly_rate) + "/hr"].filter(Boolean).join(" · ")));
+    c.appendChild(el("p", "help", [me.role, me.pay_type === "percent" ? num(me.pay_percent) + "% of each job" : money(me.hourly_rate) + "/hr"].filter(Boolean).join(" · ")));
     p.appendChild(c);
     var pw = el("div", "panel"); pw.appendChild(el("h3", null, "Change password"));
     var a = el("input", "inp"); a.type = "password"; a.autocomplete = "new-password"; a.placeholder = "New password (8+ characters)";
@@ -685,7 +688,7 @@
   }
   function drawAll(){ $("hello").textContent = "Hi, " + String(me.name || "").split(/\s+/)[0]; drawJobs(); drawHours(); drawMe(); }
   function loadAll(){
-    return Promise.all([rpc("worker_me"), rpc("worker_jobs"), rpc("worker_logs")]).then(function(r){
+    return Promise.all([rpc("worker_me2"), rpc("worker_jobs"), rpc("worker_logs2")]).then(function(r){
       me = (r[0] || [])[0]; jobs = r[1] || []; logs = r[2] || [];
       checkLeads();
       if(!me) throw new Error("not_worker");

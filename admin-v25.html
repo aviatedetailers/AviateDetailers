@@ -476,7 +476,9 @@
     time_taken: "That time overlaps another job or a busy time on your calendar.",
     bad_code: "Codes need 3 to 30 letters or numbers (no spaces).",
     code_needs: "A set-price code needs at least one service ticked.",
-    code_twice: "Two codes have the same name. Make each code different."
+    code_twice: "Two codes have the same name. Make each code different.",
+    bad_percent: "Enter a percent between 1 and 100.",
+    bad_pay: "Pick how they're paid."
   };
   function nice(err){
     var m = String(err && err.message || err || "");
@@ -1938,7 +1940,7 @@
   // =====================================================================
   var workers = [], assigns = [], teamLoaded = false, openWorker = null;
   function loadTeam(){
-    return Promise.all([rpc("admin_workers_list"), rpc("admin_assignments")]).then(function(r){
+    return Promise.all([rpc("admin_workers_list2"), rpc("admin_assignments")]).then(function(r){
       workers = r[0] || []; assigns = r[1] || []; teamLoaded = true;
       if(!$("p-team").hidden) drawTeam();
       if(!$("p-quotes").hidden) drawList();
@@ -1970,13 +1972,14 @@
     });
     return wrap;
   }
-  function loadTeamQuiet(){ rpc("admin_workers_list").then(function(r){ workers = r || []; if(!$("p-team").hidden) drawTeam(); }).catch(function(){}); }
+  function loadTeamQuiet(){ rpc("admin_workers_list2").then(function(r){ workers = r || []; if(!$("p-team").hidden) drawTeam(); }).catch(function(){}); }
 
+  function payText(w){ return w.pay_type === "percent" ? num(w.pay_percent) + "% of each job" : money(w.hourly_rate) + "/hr"; }
   function drawTeam(){
     var p = $("p-team"); p.innerHTML = "";
     if(openWorker){ var w = workerById(openWorker); if(w){ drawWorker(p, w); return; } openWorker = null; }
     var owed = workers.reduce(function(a, w){ return a + Number(w.owed || 0); }, 0);
-    var sum = el("div", "sumline", workers.length ? "You owe your crew " + money(owed) + " in unpaid hours" : "Add the people who work with you.");
+    var sum = el("div", "sumline", workers.length ? "You owe your crew " + money(owed) : "Add the people who work with you.");
     p.appendChild(sum);
     var add = el("button", "btn solid block-s", "＋ Add crew member"); add.type = "button"; add.addEventListener("click", function(){ editWorker(null); }); p.appendChild(add);
     var link = el("p", "help"); link.appendChild(document.createTextNode("Your crew logs in at "));
@@ -1988,7 +1991,7 @@
       var top = el("div", "item-top"); top.appendChild(photoImg(w.photo_path, "avatar", w.name));
       var info = el("div", "item-info");
       info.appendChild(el("p", "card-name", w.name));
-      info.appendChild(el("p", "card-sub", [w.role, money(w.hourly_rate) + "/hr"].filter(Boolean).join(" · ")));
+      info.appendChild(el("p", "card-sub", [w.role, payText(w)].filter(Boolean).join(" · ")));
       var stats = el("div", "stats");
       stats.appendChild(el("span", "stat" + (Number(w.owed) > 0 ? " owed" : ""), "Owed " + money(w.owed)));
       stats.appendChild(el("span", "stat", num(w.hours_unpaid) + " h unpaid"));
@@ -2007,7 +2010,7 @@
     var head = el("article", "card worker"); var top = el("div", "item-top");
     top.appendChild(photoImg(w.photo_path, "avatar lg", w.name));
     var info = el("div", "item-info"); info.appendChild(el("p", "card-name", w.name));
-    info.appendChild(el("p", "card-sub", [w.role, money(w.hourly_rate) + "/hr"].filter(Boolean).join(" · ")));
+    info.appendChild(el("p", "card-sub", [w.role, payText(w)].filter(Boolean).join(" · ")));
     var kv = el("dl", "kv");
     function row(k, v, href){ if(!v) return; kv.appendChild(el("dt", null, k)); var dd = el("dd"); if(href){ var a = el("a", null, v); a.href = href; dd.appendChild(a); } else dd.textContent = v; kv.appendChild(dd); }
     row("Phone", w.phone, w.phone ? "tel:" + String(w.phone).replace(/[^\d+]/g, "") : null);
@@ -2033,7 +2036,9 @@
     var pay = el("div", "panel paybox");
     pay.appendChild(el("h3", null, "Pay"));
     pay.appendChild(el("p", "big", money(w.owed)));
-    pay.appendChild(el("p", "help", num(w.hours_unpaid) + " unpaid hours · " + num(w.hours_total) + " hours all-time"));
+    pay.appendChild(el("p", "help", w.pay_type === "percent"
+      ? "Earns " + num(w.pay_percent) + "% of each finished job. It's added here by itself when a job they worked is marked done, and updates if you change the price."
+      : num(w.hours_unpaid) + " unpaid hours · " + num(w.hours_total) + " hours all-time"));
     var pa = el("div", "acts");
     pa.appendChild(act("＋ Add hours", "solid", function(){ hoursSheet(w, null); }));
     if(Number(w.owed) > 0) pa.appendChild(act("Mark all paid", "ghost", function(){
@@ -2055,26 +2060,26 @@
     jp.appendChild(jpa); p.appendChild(jp);
 
     // hours log
-    var hp = el("div", "panel"); hp.appendChild(el("h3", null, "Hours log"));
+    var hp = el("div", "panel"); hp.appendChild(el("h3", null, "Pay log"));
     var hl = el("div", "logs"); hl.appendChild(el("p", "help", "Loading…")); hp.appendChild(hl); p.appendChild(hp);
-    rpc("admin_logs", {p_worker: w.id}).then(function(rows){
+    rpc("admin_logs2", {p_worker: w.id}).then(function(rows){
       hl.innerHTML = ""; rows = rows || [];
-      if(!rows.length){ hl.appendChild(el("p", "help", "No hours logged yet.")); return; }
+      if(!rows.length){ hl.appendChild(el("p", "help", "Nothing logged yet.")); return; }
       rows.forEach(function(l){
         var r = el("div", "log" + (l.paid ? " paid" : ""));
         var t = el("div", "log-t");
-        t.appendChild(el("strong", null, prettyDay(l.work_date) + " · " + num(l.hours) + " h · " + money(l.amount)));
-        t.appendChild(el("span", "log-s", [l.paid ? "Paid" : "Unpaid", l.added_by === "worker" ? "logged by " + w.name.split(/\s+/)[0] : null, l.job_label, l.note].filter(Boolean).join(" · ")));
+        t.appendChild(el("strong", null, prettyDay(l.work_date) + " · " + (l.kind === "percent" ? l.note : num(l.hours) + " h") + " · " + money(l.amount)));
+        t.appendChild(el("span", "log-s", [l.paid ? "Paid" : "Unpaid", l.kind === "percent" ? "added automatically" : (l.added_by === "worker" ? "logged by " + w.name.split(/\s+/)[0] : null), l.job_label, l.kind === "percent" ? null : l.note].filter(Boolean).join(" · ")));
         r.appendChild(t);
         var ra = el("div", "acts");
         ra.appendChild(act(l.paid ? "Unmark paid" : "Mark paid", "ghost", function(){ return rpc("admin_log_paid", {p_id: l.id, p_paid: !l.paid}).then(function(){ return refreshWorker(w); }).catch(function(e){ toast(nice(e), true); }); }));
-        ra.appendChild(act("Edit", "ghost", function(){ hoursSheet(w, l); }));
+        if(l.kind !== "percent") ra.appendChild(act("Edit", "ghost", function(){ hoursSheet(w, l); }));
         ra.appendChild(act("Remove", "warn", function(){ if(!confirm("Remove this entry?")) return; return rpc("admin_log_remove", {p_id: l.id}).then(function(){ toast("Removed."); return refreshWorker(w); }).catch(function(e){ toast(nice(e), true); }); }));
         r.appendChild(ra); hl.appendChild(r);
       });
     }).catch(function(e){ hl.innerHTML = ""; hl.appendChild(el("p", "help", nice(e))); });
   }
-  function refreshWorker(w){ return rpc("admin_workers_list").then(function(r){ workers = r || []; drawTeam(); }); }
+  function refreshWorker(w){ return rpc("admin_workers_list2").then(function(r){ workers = r || []; drawTeam(); }); }
 
   function editWorker(w){
     var isNew = !w; w = w || {};
@@ -2083,20 +2088,34 @@
       var name = inp("text", w.name, "Full name"), role = inp("text", w.role, "e.g. Detailer, Lead tech");
       var phone = inp("tel", w.phone, "Phone"), email = inp("email", w.email, "Their email (used for their login)");
       var rate = inp("number", w.hourly_rate != null ? num(w.hourly_rate) : "", "e.g. 25"); rate.min = "0"; rate.step = "0.01"; rate.inputMode = "decimal";
+      var ptype = el("select", "inp"); [["hour", "By the hour"], ["percent", "% of each job"]].forEach(function(o){ var op = el("option", null, o[1]); op.value = o[0]; ptype.appendChild(op); });
+      ptype.value = w.pay_type === "percent" ? "percent" : "hour";
+      var pct = inp("number", w.pay_percent != null ? num(w.pay_percent) : "", "e.g. 30"); pct.min = "1"; pct.max = "100"; pct.step = "0.5"; pct.inputMode = "decimal";
       var notes = area(w.notes, "Certifications, availability, anything else");
       b.appendChild(pick); b.appendChild(fld("Name", name));
-      var r1 = el("div", "two"); r1.appendChild(fld("Role", role)); r1.appendChild(fld("Hourly rate ($)", rate)); b.appendChild(r1);
+      b.appendChild(fld("Role", role));
+      var r1 = el("div", "two"); r1.appendChild(fld("Pay", ptype));
+      var rateF = fld("Hourly rate ($)", rate), pctF = fld("Percent (%)", pct);
+      r1.appendChild(rateF); r1.appendChild(pctF); b.appendChild(r1);
+      var payHelp = el("p", "help"); b.appendChild(payHelp);
+      function payMode(){
+        var isP = ptype.value === "percent"; rateF.style.display = isP ? "none" : ""; pctF.style.display = isP ? "" : "none";
+        payHelp.textContent = isP ? "They get this % of the price of every job they're assigned to, added automatically when the job is marked done." : "They log hours in the crew app, or you add them here.";
+      }
+      ptype.addEventListener("change", payMode); payMode();
       b.appendChild(fld("Phone", phone));
       b.appendChild(fld("Email", email, w.has_login ? "Changing this here doesn't change their login email." : "Needed before you can create their login."));
       b.appendChild(fld("Notes", notes));
-      if(!isNew) b.appendChild(el("p", "help", "A new hourly rate applies to hours logged from now on."));
+      if(!isNew) b.appendChild(el("p", "help", "A new hourly rate applies to hours logged from now on. A new % also updates unpaid job pay."));
       var save = el("button", "btn solid block", isNew ? "Add crew member" : "Save"); save.type = "button"; b.appendChild(save);
       save.addEventListener("click", function(){
         if(pick.getState().busy){ toast("Wait for the photo to finish uploading.", true); return; }
         if(!name.value.trim()){ toast("Enter their name.", true); return; }
+        if(ptype.value === "percent" && !(Number(pct.value) > 0 && Number(pct.value) <= 100)){ toast("Enter a percent between 1 and 100.", true); pct.focus(); return; }
         save.disabled = true;
         rpc("admin_worker_save", {p: {id: w.id || "", name: name.value, role: role.value, phone: phone.value, email: email.value,
-          hourly_rate: rate.value || "0", notes: notes.value, photo_path: pick.getState().path || ""}})
+          hourly_rate: rate.value || "0", pay_type: ptype.value, pay_percent: ptype.value === "percent" ? pct.value : "",
+          notes: notes.value, photo_path: pick.getState().path || ""}})
           .then(function(id){ closeSheet(); toast(isNew ? "Crew member added." : "Saved."); if(isNew) openWorker = id; return loadTeam(); })
           .catch(function(e){ toast(nice(e), true); }).finally(function(){ save.disabled = false; });
       });
