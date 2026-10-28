@@ -4,7 +4,7 @@
   "short_name": "Aviate Admin",
   "description": "Bookings, crew, money and settings for Aviate Aircraft Detailers.",
   "start_url": "/admin.html",
-  "scope": "/",
+  "scope": "/admin",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#07080B",

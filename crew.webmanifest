@@ -1,0 +1,17 @@
+{
+  "id": "/crew",
+  "name": "Aviate Crew",
+  "short_name": "Aviate Crew",
+  "description": "Jobs, checklists, photos and pay for the Aviate crew.",
+  "start_url": "/crew.html",
+  "scope": "/crew",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#07080B",
+  "theme_color": "#07080B",
+  "icons": [
+    {"src": "/icons/crew-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "/icons/crew-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "/icons/crew-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

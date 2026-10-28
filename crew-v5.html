@@ -5,7 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#07080B">
-<title>Av1ate Crew</title>
+<title>Aviate Crew</title>
+<link rel="manifest" href="/crew.webmanifest">
+<link rel="icon" href="/icons/crew-192.png">
+<link rel="apple-touch-icon" href="/icons/crew-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Aviate Crew">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@300;400;500&display=swap">
 <style>
@@ -132,7 +137,7 @@
 
 <section class="wrap" id="v-login" hidden>
   <div class="login">
-    <p class="eyebrow">Av1ate Aircraft Detailers</p>
+    <p class="eyebrow">Aviate Aircraft Detailers</p>
     <h1>Crew login</h1>
     <form id="login-form" autocomplete="on">
       <label class="lbl" for="l-email">Email</label>
@@ -142,13 +147,13 @@
       <button class="btn solid block" id="l-go" type="submit">Log in</button>
     </form>
     <p class="msg" id="l-msg" role="alert"></p>
-    <p class="help">No login yet? Ask Av1ate to set one up for you.</p>
+    <p class="help">No login yet? Ask Aviate to set one up for you.</p>
   </div>
 </section>
 
 <section class="wrap" id="v-invite" hidden>
   <div class="login">
-    <p class="eyebrow">Av1ate Aircraft Detailers</p>
+    <p class="eyebrow">Aviate Aircraft Detailers</p>
     <h1>Set up your crew login</h1>
     <p class="help" id="inv-who">Checking your invite…</p>
     <form id="inv-form" autocomplete="on" hidden>
@@ -165,7 +170,7 @@
 
 <section class="wrap" id="v-app" hidden>
   <div class="top">
-    <div><p class="eyebrow">Av1ate Crew</p><h1 id="hello">Hi</h1></div>
+    <div><p class="eyebrow">Aviate Crew</p><h1 id="hello">Hi</h1></div>
     <div style="display:flex;gap:.4rem;margin-bottom:1rem">
       <button class="btn ghost sm" id="refresh" type="button">Refresh</button>
     </div>
@@ -197,11 +202,11 @@
   function show(id){ ["v-login","v-app","v-invite"].forEach(function(v){ $(v).hidden = (v !== id); }); $("tabs").hidden = (id !== "v-app"); }
   var toastT = 0;
   function toast(t, bad){ var e = $("toast"); e.textContent = t; e.className = "toast" + (bad ? " bad" : ""); e.hidden = false; clearTimeout(toastT); toastT = setTimeout(function(){ e.hidden = true; }, 3200); }
-  var ERR = {not_worker: "This login isn't set up as Av1ate crew. Ask Av1ate to check your account.", bad_hours: "Hours must be between 0 and 24.",
+  var ERR = {not_worker: "This login isn't set up as Aviate crew. Ask Aviate to check your account.", bad_hours: "Hours must be between 0 and 24.",
     bad_date: "Pick a date from the last 60 days (not in the future).", not_your_job: "That job isn't assigned to you.",
     too_many: "Too many entries for that day.", steps_left: "Check off every step on the checklist first.",
     need_before: "Add at least one Before photo first.", need_after: "Add at least one After photo first.", job_finished: "This job is already finished.",
-    photo_missing: "That photo didn't upload. Try again.", too_many_photos: "That's the photo limit for this job (60).", bad_step: "That step isn't on this job's checklist.", not_allowed: "That entry can't be removed (it was added by Av1ate or is already paid)."};
+    photo_missing: "That photo didn't upload. Try again.", too_many_photos: "That's the photo limit for this job (60).", bad_step: "That step isn't on this job's checklist.", not_allowed: "That entry can't be removed (it was added by Aviate or is already paid)."};
   function nice(err){ var m = String(err && err.message || err || ""); for(var k in ERR){ if(m.indexOf(k) >= 0) return ERR[k]; }
     if(/Failed to fetch|NetworkError|Load failed/i.test(m)) return "Can't reach the server. Check your connection."; return m || "Something went wrong."; }
 
@@ -720,9 +725,9 @@
   $("t-leads").addEventListener("click", function(){ tab("leads"); });
 
   // ---- invite links: crew.html#invite=TOKEN ----
-  var INV_ERR = {invite_invalid: "This invite link has expired or was already used. Ask Av1ate for a new one.",
+  var INV_ERR = {invite_invalid: "This invite link has expired or was already used. Ask Aviate for a new one.",
     invite_used: "This invite was already used. Log in with your email and password.",
-    email_taken: "There's already a login for this email. Try logging in, or ask Av1ate for help.",
+    email_taken: "There's already a login for this email. Try logging in, or ask Aviate for help.",
     password_length: "Use 8 to 72 characters."};
   function fnPublic(body){
     return fetch(BASE + "/functions/v1/worker-account", {method: "POST", headers: {"apikey": SB_KEY, "Content-Type": "application/json"}, body: JSON.stringify(body)})
