@@ -553,7 +553,7 @@
   function prettyStamp(ts){ try{ return new Date(ts).toLocaleString("en-US", {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"}); }catch(e){ return ts; } }
 
   // ---------- quotes ----------
-  var quotes = [], filter = "new", q = "";
+  var quotes = [], filter = "upcoming", q = "";
   var FILTERS = [["new","New"],["confirmed","Confirmed"],["upcoming","Upcoming"],["declined","Declined"],["done","Done"],["all","All"]];
 
   function matches(x){
