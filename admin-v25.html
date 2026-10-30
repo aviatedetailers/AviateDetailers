@@ -177,6 +177,11 @@
   .jstep.on{color:var(--text);}
   .jgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:.35rem;}
   .jgrid .jph{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:rgba(255,255,255,.05);cursor:zoom-in;display:block;}
+  .jcell{position:relative;}
+  .jx{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.7);color:#fff;font-size:15px;line-height:26px;padding:0;cursor:pointer;}
+  .jadd{width:100%;aspect-ratio:1;border-radius:8px;border:1px dashed var(--line);background:rgba(255,255,255,.03);color:var(--gold-hi);font-size:.78rem;cursor:pointer;display:flex;align-items:center;justify-content:center;text-align:center;padding:.3rem;}
+  .jadd:disabled{opacity:.5;cursor:wait;}
+  .jtip{font-size:.75rem;color:var(--muted);margin:-.15rem 0 .4rem;}
   .stats{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:.8rem .9rem;margin-bottom:.8rem;}
   .st-h{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.6rem;}
   .st-t{font-family:var(--f-display);font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);}
@@ -483,7 +488,10 @@
     code_needs: "A set-price code needs at least one service ticked.",
     code_twice: "Two codes have the same name. Make each code different.",
     bad_percent: "Enter a percent between 1 and 100.",
-    bad_pay: "Pick how they're paid."
+    bad_pay: "Pick how they're paid.",
+    too_many_photos: "This job already has 60 photos. Take some off first.",
+    photo_missing: "The photo didn't finish uploading. Try again.",
+    bad_kind: "Pick Before, After or Existing damage.",
   };
   function nice(err){
     var m = String(err && err.message || err || "");
@@ -628,8 +636,37 @@
     var v = parseMoney(t); if(!(v >= 0)){ toast("Enter a number, like 68.75.", true); return; }
     return setPrice(x, v > 0 ? v : null);
   }
+  // Mark done: add Before / After / Existing damage photos and the price, then finish
   function markDone(x){
-    return setStatus(x, "done", "Marked done.").then(function(){ if(x.status === "done" && x.final_price == null) return askPrice(x); });
+    openSheet("Mark job done", function(b){
+      b.appendChild(el("p", "help", [x.name, [x.brand, x.model].filter(Boolean).join(" "), x.tail].filter(Boolean).join(" · ")));
+      var box = el("div"); box.appendChild(el("p", "help", "Loading photos…")); b.appendChild(box);
+      var def = x.final_price != null ? x.final_price : (x.est_total != null && !x.est_from ? x.est_total : "");
+      var price = inp("text", def === "" ? "" : String(def), "e.g. 375"); price.inputMode = "decimal";
+      b.appendChild(fld("What did you charge?", price, x.est_total != null ? "Website estimate: " + cash(x.est_total) + ". Leave empty to use it." : "Leave empty if you're not sure yet."));
+      var mailNote = el("p", "help"); b.appendChild(mailNote);
+      var go = el("button", "btn solid block", "Mark done"); go.type = "button"; b.appendChild(go);
+      var cur = null;
+      function note(d){
+        var after = d && d.photos.some(function(p){ return p.kind === "after"; });
+        var emailOk = /^[^@\s<>,;"]+@[^@\s<>,;"]+\.[a-z]{2,}$/i.test(String(x.email || "").trim());
+        mailNote.textContent = !emailOk ? "No email on file, so no \"your aircraft is done\" email will go out."
+          : after ? "When you tap Mark done, they get the \"your aircraft is done\" email with their photos."
+          : "Add at least one After photo and they'll get the \"your aircraft is done\" email with their photos.";
+      }
+      function draw(d){ cur = d; box.innerHTML = ""; jobPhotoBox(box, x, d, function(nd){ draw(nd); }); note(d); }
+      rpc("admin_job", {p_quote: x.id}).then(draw).catch(function(e){ box.innerHTML = ""; box.appendChild(el("p", "help", nice(e))); note(null); });
+      go.addEventListener("click", function(){
+        if(box.querySelector(".jadd[disabled]")){ toast("Wait for the photos to finish uploading.", true); return; }
+        var t = String(price.value || "").trim(), v = null;
+        if(t){ v = parseMoney(t); if(!(v >= 0)){ toast("Enter a number, like 375.", true); price.focus(); return; } }
+        go.disabled = true;
+        var p = (v === null && x.final_price == null) ? Promise.resolve() : setPrice(x, v, true);
+        p.then(function(){ return setStatus(x, "done", "Marked done."); })
+          .then(function(){ if(x.status === "done"){ closeSheet(); loadQuotes(); } })
+          .finally(function(){ go.disabled = false; });
+      });
+    });
   }
   // hours until the job starts (negative = already started); null if no date
   function hoursToStart(x){
@@ -804,6 +841,63 @@
     img.addEventListener("click", function(){ if(jobPhotoCache[path]) window.open(jobPhotoCache[path], "_blank"); });
     return img;
   }
+  // photo sections (Existing damage / Before / After) where admin can add and take off photos
+  var JOB_KINDS = [["damage", "Existing damage", "Scratches, dents or chips found before starting."], ["before", "Before", "How it looked when you arrived."], ["after", "After", "The finished result. The customer sees these."]];
+  function uploadJobPhotoAdmin(quoteId, kind, file){
+    var path = "jobs/" + quoteId + "/" + kind + "-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7) + ".jpg";
+    return shrink(file).then(function(blob){
+      return fresh().then(function(s){
+        return fetch(BASE + "/storage/v1/object/job-photos/" + encPath(path), {
+          method: "POST",
+          headers: {"apikey": SB_KEY, "Authorization": "Bearer " + s.access_token, "Content-Type": "image/jpeg", "x-upsert": "false"},
+          body: blob
+        });
+      }).then(function(r){
+        if(!r.ok) return r.text().then(function(t){ throw new Error("Photo upload failed (" + r.status + "). " + t.slice(0, 120)); });
+        jobPhotoCache[path] = URL.createObjectURL(blob);
+        return rpc("admin_photo_add", {p_quote: quoteId, p_kind: kind, p_path: path});
+      });
+    });
+  }
+  function jobPhotoBox(box, x, d, redraw){
+    JOB_KINDS.forEach(function(k){
+      var ph = d.photos.filter(function(p){ return p.kind === k[0]; });
+      box.appendChild(el("p", "jsec", k[1] + " photos · " + ph.length));
+      box.appendChild(el("p", "jtip", k[2]));
+      var g = el("div", "jgrid");
+      ph.forEach(function(p){
+        var c = el("div", "jcell"); c.appendChild(jobImg(p.path));
+        var rm = el("button", "jx", "×"); rm.type = "button"; rm.title = "Take off this photo";
+        rm.addEventListener("click", function(ev){
+          ev.stopPropagation();
+          if(!confirm("Take off this " + k[1].toLowerCase() + " photo?")) return;
+          rm.disabled = true;
+          rpc("admin_photo_remove", {p_id: p.id}).then(function(nd){ toast("Photo taken off."); redraw(nd); })
+            .catch(function(e){ rm.disabled = false; toast(nice(e), true); });
+        });
+        c.appendChild(rm); g.appendChild(c);
+      });
+      var file = el("input"); file.type = "file"; file.accept = "image/*"; file.multiple = true; file.hidden = true;
+      var add = el("button", "jadd", "+ Add " + k[1].toLowerCase() + " photos"); add.type = "button";
+      add.addEventListener("click", function(){ file.click(); });
+      file.addEventListener("change", function(){
+        var files = Array.prototype.slice.call(file.files || []); file.value = "";
+        if(!files.length) return;
+        add.disabled = true; var n = 0, last = null;
+        add.textContent = "Uploading 1 of " + files.length + "…";
+        files.reduce(function(chain, f){
+          return chain.then(function(){
+            add.textContent = "Uploading " + (n + 1) + " of " + files.length + "…";
+            return uploadJobPhotoAdmin(x.id, k[0], f).then(function(nd){ n++; last = nd; });
+          });
+        }, Promise.resolve()).then(function(){
+          toast(n === 1 ? "Photo added." : n + " photos added.");
+        }).catch(function(e){ toast(nice(e), true); })
+          .finally(function(){ if(last) redraw(last); else { add.disabled = false; add.textContent = "+ Add " + k[1].toLowerCase() + " photos"; } });
+      });
+      g.appendChild(add); box.appendChild(g); box.appendChild(file);
+    });
+  }
   function openJobSheet(x){
     openSheet("Checklist & photos", function(b){
       b.appendChild(el("p", "help", [x.name, [x.brand, x.model].filter(Boolean).join(" "), x.tail].filter(Boolean).join(" · ")));
@@ -814,12 +908,8 @@
         var n = d.steps.filter(function(s){ return s.done; }).length;
         box.appendChild(el("p", "jsec", "Checklist · " + n + " of " + d.steps.length));
         d.steps.forEach(function(s){ box.appendChild(el("div", "jstep" + (s.done ? " on" : ""), (s.done ? "✓ " : "○ ") + s.label)); });
-        [["damage", "Existing damage"], ["before", "Before"], ["after", "After"]].forEach(function(k){
-          var ph = d.photos.filter(function(p){ return p.kind === k[0]; });
-          box.appendChild(el("p", "jsec", k[1] + " photos · " + ph.length));
-          if(!ph.length){ box.appendChild(el("p", "help", "None.")); return; }
-          var g = el("div", "jgrid"); ph.forEach(function(p){ g.appendChild(jobImg(p.path)); }); box.appendChild(g);
-        });
+        var pb = el("div"); box.appendChild(pb);
+        jobPhotoBox(pb, x, d, function(nd){ draw(nd); loadQuotes(); });
         if(d.finished_at){
           var ra = el("div", "acts");
           ra.appendChild(act("Reopen checklist", "ghost", function(){
