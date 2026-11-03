@@ -348,6 +348,9 @@ body.has-promo:not(.past-start) .quote-bub{display:none !important;}
 body.quote-open .promo-bar,body.past-start .promo-bar{display:none !important;}
 .form-links{margin:.9rem 0 0;font-size:.82rem;color:rgba(255,255,255,.65);}
 .form-links a{color:#F0DCA4;}
+.tip{margin:1.1rem 0 0;padding-top:.9rem;border-top:1px solid rgba(255,255,255,.08);font-size:.78rem;line-height:1.5;color:rgba(255,255,255,.55);}
+.tip b{color:#C9A24A;font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:.66rem;display:block;margin-bottom:.25rem;}
+.tip[hidden]{display:none!important;}
 .revs{margin:0 0 2rem;text-align:left;}
 .revs-row{display:flex;gap:.7rem;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:.4rem;-webkit-overflow-scrolling:touch;}
 .rev{flex:0 0 min(84%,22rem);scroll-snap-align:start;border:1px solid rgba(201,162,74,.35);border-radius:14px;padding:.9rem 1rem;background:rgba(255,255,255,.04);}
@@ -815,6 +818,7 @@ body.quote-open .promo-bar,body.past-start .promo-bar{display:none !important;}
     </form>
     <p class="form-note" id="q-note" role="status" aria-live="polite">New Jersey &middot; Aircraft Detailers.</p>
     <p class="form-links">Questions? <a href="/faq.html">Read the FAQ</a> &middot; <a href="/products.html">What we use</a> &middot; <a href="/about.html">About us</a> &middot; <a href="/terms.html">Terms</a> &middot; <a href="/privacy.html">Privacy</a></p>
+    <p class="tip" id="siteTip" hidden></p>
     <div class="q-fail" id="q-fail" hidden>
       <p class="q-fail-h">Your request has not been sent.</p>
       <p class="q-fail-p">Copy the details below and email them to <strong id="q-fail-mail"></strong>, or call <a href="tel:+17324101752">+1 (732) 410-1752</a>.</p>
@@ -5711,6 +5715,30 @@ body.quote-open .promo-bar,body.past-start .promo-bar{display:none !important;}
       else { cal.time = b.dataset.start; cal.afterHours = !!b.dataset.ah; }
       timesDraw(); calFoot();
     });
+    // one reason-to-book line in the footer, different each visit
+    (function(){
+      var T = [
+        "Bugs are acidic. Left on paint for weeks, they can etch it. A detail removes them before they do.",
+        "A spotless aircraft makes oil leaks and other problems easier to spot on your walkaround.",
+        "Wax protects your paint from sun and moisture, so it stays glossy longer.",
+        "Grime on the leading edges can disturb the airflow over your wings. Clean edges, clean air.",
+        "You spend every flight in the cabin. A deep clean makes each one feel like the first.",
+        "Fresh exhaust soot wipes off. Months-old soot takes real work. Regular details keep it easy.",
+        "Dried-out leather cracks. Cleaning and conditioning keep your seats soft and looking new.",
+        "We come to your hangar. No ferrying the plane and no lost flying day.",
+        "Waterless wash means no hose and no runoff, and no water getting where it shouldn\u2019t.",
+        "Passengers and buyers notice a well-kept aircraft.",
+        "Spotless windows give you a clearer view for takeoff and landing.",
+        "Regular care is easier than a big restoration later.",
+        "Grit in carpets and seats can wear the fabric down over time.",
+        "You service your engine on a schedule. Your paint and interior deserve one too.",
+        "A well-kept aircraft is easier to show when it\u2019s time to sell."
+      ];
+      var el = document.getElementById("siteTip"); if(!el) return;
+      var i = Math.floor(Math.random() * T.length), last = -1;
+      try{ last = parseInt(localStorage.getItem("av_tip"), 10); if(last === i) i = (i + 1) % T.length; localStorage.setItem("av_tip", String(i)); }catch(e){}
+      var b = document.createElement("b"); b.textContent = "Why detail"; el.appendChild(b); el.appendChild(document.createTextNode(T[i])); el.hidden = false;
+    })();
     function nyToday(){ return new Intl.DateTimeFormat("en-CA", {timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit"}).format(new Date()); }
     var nextKey = null;
     function nextOpenDraw(){
