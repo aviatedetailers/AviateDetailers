@@ -457,6 +457,11 @@ body.quote-open .promo-bar,body.past-start .promo-bar{display:none !important;}
   .cal-t.sel{background:#C9A24A;border-color:#C9A24A;color:#07080B;font-weight:600;}
   .cal-t.sel small{color:#07080B;}
   .cal-note{margin:.5rem 0 0;font-size:.7rem;line-height:1.4;color:rgba(255,255,255,.55);}
+  .next-open{display:inline-flex;align-items:center;gap:.55rem;margin:1rem 0 0;font-size:.85rem;color:#F0DCA4;text-decoration:none;}
+  .next-open::before,.cal-next::before{content:"";width:.5rem;height:.5rem;border-radius:50%;background:#C9A24A;box-shadow:0 0 0 3px rgba(201,162,74,.22);flex:none;}
+  .next-open b{font-weight:600;}
+  .cal-next{display:flex;align-items:center;gap:.55rem;width:100%;margin:0 0 .6rem;padding:.55rem .7rem;border:1px solid rgba(201,162,74,.4);border-radius:10px;background:rgba(201,162,74,.08);color:#F0DCA4;font:inherit;font-size:.8rem;text-align:left;cursor:pointer;}
+  .cal-next[hidden],.next-open[hidden]{display:none!important;}
   @media (max-width:540px){.cal-tgrid{grid-template-columns:repeat(3,1fr);}}
   @media (max-width:540px){.cal-day{height:1.95rem;font-size:.76rem;}}
 
@@ -797,7 +802,7 @@ body.quote-open .promo-bar,body.past-start .promo-bar{display:none !important;}
       <div class="field"><label for="q-brand">Aircraft brand</label><input id="q-brand" name="brand" autocomplete="off" placeholder="Select a brand"></div>
       <div class="field"><label for="q-model">Aircraft model</label><input id="q-model" name="model" autocomplete="off" placeholder="Select a brand first" disabled></div>
       <div class="field full"><label for="q-field">Home airport</label><input id="q-field" name="airport" placeholder="KBLM &middot; Monmouth County"></div>
-      <fieldset class="field full cal" id="q-cal" hidden><legend>Preferred date &amp; time <em>(open dates in gold)</em></legend><div class="cal-box"><div class="cal-head"><button type="button" class="cal-nav" id="cal-prev" aria-label="Previous month">&lsaquo;</button><span class="cal-title" id="cal-title" aria-live="polite"></span><button type="button" class="cal-nav" id="cal-next" aria-label="Next month">&rsaquo;</button></div><div class="cal-dow" aria-hidden="true"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div><div class="cal-grid" id="cal-grid"></div><div class="cal-times" id="cal-times" hidden><p class="cal-times-h" id="cal-times-h">Start time</p><div class="cal-tgrid" id="cal-tgrid"></div></div><p class="cal-note">Start times from 11 PM to 4 AM have a <span class="ah-amt">$250</span> after-hours fee.</p><div class="cal-foot"><span id="cal-pick">No date picked. We will suggest one.</span><button type="button" class="cal-clear" id="cal-clear" hidden>Clear</button></div></div></fieldset>
+      <fieldset class="field full cal" id="q-cal" hidden><legend>Preferred date &amp; time <em>(open dates in gold)</em></legend><button type="button" class="cal-next" id="calNext" hidden></button><div class="cal-box"><div class="cal-head"><button type="button" class="cal-nav" id="cal-prev" aria-label="Previous month">&lsaquo;</button><span class="cal-title" id="cal-title" aria-live="polite"></span><button type="button" class="cal-nav" id="cal-next" aria-label="Next month">&rsaquo;</button></div><div class="cal-dow" aria-hidden="true"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div><div class="cal-grid" id="cal-grid"></div><div class="cal-times" id="cal-times" hidden><p class="cal-times-h" id="cal-times-h">Start time</p><div class="cal-tgrid" id="cal-tgrid"></div></div><p class="cal-note">Start times from 11 PM to 4 AM have a <span class="ah-amt">$250</span> after-hours fee.</p><div class="cal-foot"><span id="cal-pick">No date picked. We will suggest one.</span><button type="button" class="cal-clear" id="cal-clear" hidden>Clear</button></div></div></fieldset>
       <fieldset class="field full svcs"><legend>Services &amp; prices</legend><div id="svc-ui"></div></fieldset>
       <div class="full deal-box" id="dl-code"><label for="q-code" class="deal-lab">Have a promo code?</label><div class="code-row"><input id="q-code" class="deal-in" placeholder="Enter code" autocapitalize="characters" autocomplete="off" maxlength="30"><button type="button" class="code-go" id="q-code-go">Apply</button></div><small class="code-msg" id="q-code-msg" aria-live="polite"></small></div>
       <div class="full deal-box" id="dl-ref" hidden><label for="q-ref" class="deal-lab" id="dl-ref-lab"></label><input id="q-ref" class="deal-in" autocomplete="off" maxlength="80" placeholder="Their name"></div>
@@ -890,6 +895,7 @@ body.quote-open .promo-bar,body.past-start .promo-bar{display:none !important;}
     <p class="c-eyebrow micro">New Jersey &middot; Aircraft Detailers <i></i></p>
     <h1 class="hero-h">A clean takeoff.<br>Every time.</h1>
     <p class="lead">Exterior, brightwork and a spotless cabin &mdash; finished in your hangar before your next departure.</p>
+    <a class="next-open" id="nextOpen" href="#quote" hidden></a>
   </section>
 
   <section class="card" data-side="left" data-i="1">
@@ -5705,6 +5711,23 @@ body.quote-open .promo-bar,body.past-start .promo-bar{display:none !important;}
       else { cal.time = b.dataset.start; cal.afterHours = !!b.dataset.ah; }
       timesDraw(); calFoot();
     });
+    function nyToday(){ return new Intl.DateTimeFormat("en-CA", {timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit"}).format(new Date()); }
+    var nextKey = null;
+    function nextOpenDraw(){
+      var keys = Object.keys(cal.open).sort(), t = nyToday(), k = null, i;
+      for(i = 0; i < keys.length; i++){ if(keys[i] >= t){ k = keys[i]; break; } }
+      nextKey = k;
+      var h = document.getElementById("nextOpen"), c = document.getElementById("calNext");
+      if(!k){ if(h) h.hidden = true; if(c) c.hidden = true; return; }
+      var tm = new Date(t + "T12:00:00Z"); tm.setUTCDate(tm.getUTCDate() + 1);
+      var label = k === t ? "Today" : (k === tm.toISOString().slice(0, 10) ? "Tomorrow" : prettyDay(k));
+      if(h){ h.textContent = ""; h.appendChild(document.createTextNode("Next open date: ")); var b = document.createElement("b"); b.textContent = label; h.appendChild(b); h.hidden = false; }
+      if(c){ c.textContent = "Next open: " + label + " \u00b7 tap to pick"; c.hidden = false; }
+    }
+    document.getElementById("calNext").addEventListener("click", function(){
+      if(!nextKey || !cal.open[nextKey]) return;
+      var p = nextKey.split("-"); cal.view = [+p[0], +p[1] - 1]; cal.sel = nextKey; calDraw(); timesLoad();
+    });
     function calLoad(keepSel){
       if(!SB_ON) return Promise.resolve();
       return sbRpc("available_days").then(function(rows){
@@ -5721,7 +5744,7 @@ body.quote-open .promo-bar,body.past-start .promo-bar{display:none !important;}
           cal.view = [Math.floor(fv / 12), fv % 12];
         }
         cal.el.hidden = false;
-        calDraw();
+        calDraw(); nextOpenDraw();
         if(cal.sel) timesLoad(); else timesDraw();
       }).catch(function(){ cal.el.hidden = true; });   // calendar unavailable: the form still works without it
     }
