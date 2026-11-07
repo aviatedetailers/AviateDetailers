@@ -183,10 +183,10 @@
   .jadd:disabled{opacity:.5;cursor:wait;}
   .jtip{font-size:.75rem;color:var(--muted);margin:-.15rem 0 .4rem;}
   .stats{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:.8rem .9rem;margin-bottom:.8rem;}
-  .st-h{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.6rem;}
+  .st-h{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.6rem;}
   .st-t{font-family:var(--f-display);font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);}
   .st-seg{display:flex;gap:.25rem;}
-  .st-b{border:1px solid var(--line);background:transparent;border-radius:999px;padding:.25rem .6rem;font-size:.74rem;color:var(--muted);cursor:pointer;}
+  .st-b{border:1px solid var(--line);background:transparent;border-radius:999px;padding:.25rem .5rem;white-space:nowrap;font-size:.74rem;color:var(--muted);cursor:pointer;}
   .st-b.on{border-color:var(--gold);color:var(--text);background:var(--gold-soft);}
   .st-grid{display:grid;grid-template-columns:1fr 1fr;gap:.45rem;}
   .st-c{background:rgba(255,255,255,.04);border-radius:10px;padding:.55rem .65rem;}
@@ -1097,7 +1097,7 @@
     box.hidden = false; box.innerHTML = "";
     var h = el("div", "st-h"); h.appendChild(el("span", "st-t", "Website"));
     var seg = el("div", "st-seg");
-    [["d1", "Today"], ["d7", "7 days"], ["d30", "30 days"]].forEach(function(o){
+    [["d1", "Today"], ["d7", "7 days"], ["d30", "30 days"], ["all", "All time"]].forEach(function(o){
       var b = el("button", "st-b" + (statsRange === o[0] ? " on" : ""), o[1]); b.type = "button";
       b.addEventListener("click", function(){ statsRange = o[0]; drawStats(); }); seg.appendChild(b);
     });
@@ -1108,7 +1108,9 @@
       var c = el("div", "st-c"); c.appendChild(el("b", null, x[0] == null ? "0" : String(x[0]))); c.appendChild(el("span", null, x[1])); g.appendChild(c);
     });
     box.appendChild(g);
-    var f = el("div", "st-f"); f.appendChild(el("span", "help", "Your own visits aren't counted while you're logged in here.")); box.appendChild(f);
+    var note = "Your own visits aren't counted while you're logged in here.";
+    if(statsRange === "all" && r.since) note = "Counting since " + prettyDay(r.since) + ", when visitor tracking started. " + note;
+    var f = el("div", "st-f"); f.appendChild(el("span", "help", note + " Updates on its own every 30 seconds.")); box.appendChild(f);
     var pb = $("web-body"); if(pb){ pb.innerHTML = ""; statsBody(pb); }
   }
   function openStatsSheet(){ openSheet("Website · last 30 days", statsBody); }
@@ -1685,9 +1687,14 @@
   function loadMoney(){ return rpc("admin_money").then(function(r){ moneyData = r; drawMoney(); }).catch(function(){}); }
 
   function loadStats(){ rpc("admin_site_stats").then(function(r){ stats = r; drawStats(); }).catch(function(){}); }
+  // keep the website numbers in sync while the admin page is open
+  var statsTimer = 0;
+  function statsTick(){ if(stats && document.visibilityState === "visible") loadStats(); }
+  function statsAuto(){ clearInterval(statsTimer); statsTimer = setInterval(statsTick, 30000); }
+  document.addEventListener("visibilitychange", function(){ if(document.visibilityState === "visible") statsTick(); });
 
   function loadQuotes(){
-    loadStats(); loadMoney(); loadRevs(); loadPrices(); loadProfiles();
+    loadStats(); statsAuto(); loadMoney(); loadRevs(); loadPrices(); loadProfiles();
     rpc("admin_job_summaries").then(function(rows){ jobSum = {}; (rows || []).forEach(function(r){ jobSum[r.quote_id] = r; }); drawList(); }).catch(function(){});
     return rpc("admin_list_quotes").then(function(rows){ quotes = rows || []; drawChips(); drawList(); if(curTab === "cust") drawCust(); })
       .catch(function(e){ toast(nice(e), true); });
