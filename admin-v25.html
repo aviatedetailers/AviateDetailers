@@ -1113,11 +1113,12 @@
     var f = el("div", "st-f"); f.appendChild(el("span", "help", note + " Updates on its own every 30 seconds.")); box.appendChild(f);
     var pb = $("web-body"); if(pb){ pb.innerHTML = ""; statsBody(pb); }
   }
-  function openStatsSheet(){ openSheet("Website · last 30 days", statsBody); }
+  function openStatsSheet(){ openSheet("Website", statsBody); }
+  var RANGE_NAME = {d1: "today", d7: "last 7 days", d30: "last 30 days", all: "all time"};
   function statsBody(b){
 
       var daily = stats.daily || [], max = Math.max.apply(null, daily.map(function(d){ return d.visitors; }).concat([1]));
-      b.appendChild(el("p", "jsec", "Visitors per day (gold) · quote requests (green)"));
+      b.appendChild(el("p", "jsec", "Visitors per day (gold) · quote requests (green) · last 30 days"));
       var ch = el("div", "st-chart");
       daily.forEach(function(d){
         var col = el("div", "st-col"); col.title = d.day + ": " + d.visitors + " visitors, " + d.requests + " requests";
@@ -1132,8 +1133,10 @@
         if(!rows.length){ b.appendChild(el("p", "help", "No visits yet.")); return; }
         rows.forEach(function(x){ var r = el("div", "st-row"); r.appendChild(el("span", null, x[key].charAt(0).toUpperCase() + x[key].slice(1))); r.appendChild(el("b", null, String(x.visitors))); b.appendChild(r); });
       }
-      list("Where visitors came from", stats.sources || [], "source");
-      list("Phone or computer", stats.devices || [], "device");
+      var rr = stats[statsRange] || {}, rn = RANGE_NAME[statsRange] || "";
+      list("Where visitors came from · " + rn, rr.sources || stats.sources || [], "source");
+      list("Phone or computer · " + rn, rr.devices || stats.devices || [], "device");
+      b.appendChild(el("p", "help", "Each visitor is counted once, by where they came from on their first visit in this time range, so these add up to the Visitors number."));
   }
 
   // ---- money ----
