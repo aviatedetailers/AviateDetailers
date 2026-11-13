@@ -525,12 +525,14 @@ body.quote-open .promo-bar,body.past-start .promo-bar{display:none !important;}
   .submit:hover{background:rgba(255,255,255,.22);}
   .form-note{margin:.75rem 0 0;font-size:.74rem;line-height:1.5;color:rgba(255,255,255,.6);}
   @media (max-width:540px){
-    .form{grid-template-columns:1fr 1fr;gap:.5rem .6rem;margin-bottom:.7rem;}
-    .field input,.field textarea{padding:.42rem .6rem;font-size:.84rem;}
-    .field textarea{min-height:3.1rem;}
-    .field label{font-size:.52rem;letter-spacing:.2em;}
-    .submit{padding:.6rem 1rem;}
-    .form-note{margin-top:.5rem;font-size:.68rem;}
+    /* phones: one field per row with room to breathe */
+    .form{grid-template-columns:1fr;gap:1.05rem;margin-bottom:1.1rem;}
+    .field{gap:.4rem;}
+    .field input,.field textarea{padding:.72rem .85rem;font-size:1rem;}
+    .field textarea{min-height:4.6rem;}
+    .field label{font-size:.6rem;letter-spacing:.22em;}
+    .submit{padding:.85rem 1rem;}
+    .form-note{margin-top:.7rem;font-size:.74rem;}
   }
 
   .cue{margin:1.4rem 0 0;color:#6B7684;}
